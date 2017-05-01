@@ -3,10 +3,11 @@
  * @author: helei
  * @createTime: 2016-06-07 19:38
  * @description: 一个轻量级的网络操作类，实现GET、POST、UPLOAD、DOWNLOAD常用操作，支持链式写法。
+ * @link      https://github.com/helei112g/PHP-Curl
+ * @link      https://helei112g.github.io/
  */
 
 namespace Payment\Utils;
-
 
 class Curl
 {
@@ -33,7 +34,7 @@ class Curl
 
     /**
      * 静态实例化
-     * @return array
+     * @return Curl
      */
     public static function init()
     {
@@ -152,7 +153,7 @@ class Curl
     public function set($item, $value = '')
     {
         if (is_array($item)) {
-            foreach($item as $key => &$value){
+            foreach ($item as $key => &$value) {
                 $this->option[$key] = $value;
             }
         } else {
@@ -184,7 +185,7 @@ class Curl
 
         // 配置选项
         $options = array_merge($this->default, $this->option);
-        foreach($options as $key => $val) {
+        foreach ($options as $key => $val) {
             if (is_string($key)) {
                 $key = constant(strtoupper($key));
             }
@@ -194,7 +195,7 @@ class Curl
         // POST选项
         if ($this->post) {
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $this->post_fields_build($this->post));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $this->postFieldsBuild($this->post));
         }
 
         // 运行句柄
@@ -236,13 +237,14 @@ class Curl
      * @param string $pre
      * @return array
      */
-    private function post_fields_build($input, $pre = null){
+    private function postFieldsBuild($input, $pre = null)
+    {
         if (is_array($input)) {
             $output = array();
             foreach ($input as $key => $value) {
                 $index = is_null($pre) ? $key : "{$pre}[{$key}]";
                 if (is_array($value)) {
-                    $output = array_merge($output, $this->post_fields_build($value, $index));
+                    $output = array_merge($output, $this->postFieldsBuild($value, $index));
                 } else {
                     $output[$index] = $value;
                 }

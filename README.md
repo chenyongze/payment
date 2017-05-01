@@ -1,225 +1,121 @@
-# 重大更新
+[![Software license][ico-license]](LICENSE)
+[![Latest development][ico-version-dev]][link-packagist]
+[![Monthly installs][ico-downloads-monthly]][link-downloads]
 
-payment v1.x系列目前仅修复重要bug问题,不再增加新的功能.现阶段主要开发与维护 v2.x.
+-----
 
-具体代码,请查看分支 paymentv2
+所有的支付接入请看文档操作。如果文档遇到问题可通过后面提供的方式联系到我。
 
-paymentv2的[相关文档](https://helei112g.github.io/2016/07/18/%E6%94%AF%E4%BB%98%E5%AE%9D%E3%80%81%E5%BE%AE%E4%BF%A1%E6%94%AF%E4%BB%98%E6%8E%A5%E5%85%A5%E9%9B%86%E6%88%90/)以放在博客中维护,方便更新修改.
+- [Payment3.x 使用教程](https://helei112g.github.io/categories/payment-3/) (推荐的版本)
+- [Payment2.x 使用教程](https://helei112g.github.io/categories/payment/)
 
-# 更新说明
-* 201-6-22 增加支付退款接口 调用方法，请看： `examples/refund.php`
-* 201-6-21 增加微信网站扫码支付接口 调用方法，请看： `examples/wxcharge.php`
+----
 
-# 项目介绍
-1. 集成了支付宝的即时到帐、移动支付、订单查询接口
-2. 集成了微信的APP支付、订单查询接口
-3. 运行时，需要 `php 5.5` 以上的版本。目前5.4的php版本也可运行。但后期可能会放弃该版本。
-4. 项目中所有的金额传输单位全部为元。lib会自动在向微信支付时，处理为分。支付宝支付时保持不变。
-5. 强烈建议，请查看 `examples` 文件中的示例代码。以下文档内容仅供参考，后期可能不能及时更新。
+当前支持 `微信`、`支付宝`、`招商一网通` 三个渠道： 
+- **微信支付**：刷卡支付、公众号支付、扫码支付、APP支付、H5支付、小程序支付全部支持；
 
-# 安装
+- **支付宝支付**：手机网站支付、APP支付、扫码支付、条码支付、电脑网站支付（即时到账）全部支持；
 
-建议安装方式：
+- **招商一网通**：app支付、手机网站支付（实际上是同一种支付，但是可用于该两种场景）。
 
-```php
-    composer require riverslei/payment
+支持所有第三方的支付订单查询、退款操作、退款订单状态查询。同时支持支付宝与微信的转账操作。
+
+# 安装Payment #
+
+`Payment` 需要 `PHP >= 5.6`，并且需要安装以下扩展：
+```
+- cURL extension
+
+- mbstring
+
+- BC Math
 ```
 
-一般安装方式：
 
-直接下载项目，然后通过 `payment/autoload.php` 来引入项目。
+* **安装方式一**
 
-对于还在使用不支持命名空间的同学，你们可以自己改造。不打算发布一个不支持命名空间的项目
+通过composer，这是推荐的方式，可以使用composer.json 声明依赖，或者直接运行下面的命令。
 
-# 调用方式
-    本来说想周末再补充文档。不过昨天发的项目，今天一看都差不多40个start了。我想不能等了。得早点把文档给出来。
-    
-## 支付宝网站支付
-    首先使用支付宝之前，需要在做以下几个配置
-
-1. 修改 `src/Alipay/AlipayConfig.php` 这个配置文件。其中涉及到的信息在登陆商户支付版后，均可找到。需要注意的是
-rsa秘钥的生成与上传。切记上传时一定检查是否有空格，有空格肯定报错，报错别问我。
-2. 生成的rsa秘钥，一定要放在 `src/Alipay/safekey` 这个文件夹下面。一把来说我不要求你的文件命令，但是别用中文命令，最好直接默认使用生成出来的命令。
-
-现在来说说调用的事。
-首选使用支付前，需要获得一个支付对象。由于支付对象有多个（微信APP、支付宝网站、支付宝移动支付等），所以这里通过依赖接口，静态工厂方法，来方便大家使用。
-
-下面示例代码是：支付宝网站支付的演示代码。这里如果不够清晰，可以看 `examples` 文件夹中的示例代码。
 ```php
-    $alipayDirect = ChargeFactory::getInstance(ChargeChannel::CHANNEL_IS_ALIPAY_DIRECT);
-    
-    $payData = [
-        "order_no"	=> 'F616699445072025',// 必须， 商户订单号，适配每个渠道对此参数的要求，必须在商户系统内唯一
-        "amount"	=> '0.01',// 必须， 订单总金额, 人民币为元
-        "client_ip"	=> '127.0.0.1',//  可选， 发起支付请求客户端的 IP 地址，格式为 IPV4
-        "subject"	=> 'Older Driver',// 必须， 商品的标题，该参数最长为 32 个 Unicode 字符
-        "body"	=> '购买Older Driver',// 必须， 商品的描述信息
-        "success_url"	=> 'http://mall.devtiyushe.com/order/default/ali-pay-notify.html',// 必须， 支付成功的回调地址  统一使用异步通知  该url后，不能带任何参数。
-        "return_url"	=> 'http://mall.devtiyushe.com/order/default/pay-return-url.html',
-        "time_expire"	=> '14',// 可选， 订单失效时间，单位是 分钟
-        "description"	=> '',//  可选，如果用户请求时传递了该参数，则返回给商户时会回传该参数
-    ];
-    
-    try {
-        $url = $alipayDirect->charges($payData);
-    } catch (PayException $e) {
-        echo $e->errorMessage();
+    composer require "riverslei/payment:~3.1"
+```
+
+放入composer.json文件中
+
+```php
+    "require": {
+        "riverslei/payment": "~3.1"
     }
 ```
 
-## 支付宝移动支付
-    移动支付的配置与上方相同。所有的支付宝支付，配置都只需要设置以上配置即可。以后对于配置就不在单独描述了。
-    
-直接上代码，说怎么调用
+然后运行
 
-```php
-    $alipayMobile = ChargeFactory::getInstance(ChargeChannel::CHANNEL_IS_ALIPAY);
-    
-    $payData = [
-        "order_no"	=> 'F616699445072025',// 必须， 商户订单号，适配每个渠道对此参数的要求，必须在商户系统内唯一
-        "amount"	=> '0.01',// 必须， 订单总金额, 人民币为元
-        "client_ip"	=> '127.0.0.1',//  可选， 发起支付请求客户端的 IP 地址，格式为 IPV4
-        "subject"	=> 'Older Driver',// 必须， 商品的标题，该参数最长为 32 个 Unicode 字符
-        "body"	=> '购买Older Driver',// 必须， 商品的描述信息
-        "success_url"	=> 'http://mall.devtiyushe.com/order/default/ali-pay-notify.html',// 必须， 支付成功的回调地址  统一使用异步通知  该url后，不能带任何参数。
-        "time_expire"	=> '14',// 可选， 订单失效时间，单位是 分钟
-        "description"	=> '',//  可选，如果用户请求时传递了该参数，则返回给商户时会回传该参数
-    ];
-    
-     try {
-         $reqArr = $alipayMobile->charges($data);// 调用该函数，会抛出  PayException 异常
-         var_dump($reqArr);
-     } catch (PayException $e) {
-         echo $e->errorMessage();
-     }
+```
+composer update
 ```
 
-## 微信APP支付
-    当前微信支付仅支持APP支付。后期会陆续更新公众号支付。H5支付等功能。
-    
-进行微信支付的使用，首要的还是先进行配置。结构与支付宝基本差不多。
-1. 打开 `src/Wxpay/WxConfig.php` 文件，可以根据自己微信的商户平台，找到对应的信息。
-2. 把微信平台上相关的key下载后放入 `src/Wxpay/safekey` 文件夹中。当然这一步也可不做，当前微信没有几个接口在用他们提供的安全文件
+* **安装方式二**
 
-通过两步配置完成，可以开始使用了。
-```php
-    $appCharge = ChargeFactory::getInstance(ChargeChannel::CHANNEL_IS_WX);
-    
-    $payData = [
-        "order_no"	=> 'F2016dd6dd1a23',// 必须， 商户订单号，适配每个渠道对此参数的要求，必须在商户系统内唯一
-        "amount"	=> '1',// 订单总金额, 人民币为元
-        "subject"	=> '测试即时到帐接口',// 必须， 商品的标题，该参数最长为 32 个 Unicode 字符
-        "body"	=> '即时到帐接口，就是爱支付',// 必须， 商品的描述信息
-        "client_ip"	=> '127.0.0.1',//  可选， 发起支付请求客户端的 IP 地址，格式为 IPV4
-        "success_url"	=> 'http://mall.tys.tiyushe.net/pay-test/notify.html',// 必须， 支付成功的回调地址  统一使用异步通知  该url后，不能带任何参数。
-        "time_expire"	=> '15',// 可选， 订单失效时间，单位是 分钟
-        "description"	=> '这是附带的业务数据',//  可选，如果用户请求时传递了该参数，则返回给商户时会回传该参数
-    ];
-    
-    try {
-        $reqArr = $appCharge->charges($data);// 调用该函数，会抛出  PayException 异常
-        var_dump($reqArr);
-    } catch (PayException $e) {
-        echo $e->errorMessage();
-    }
-```
+直接下载放入自己的项目中，通过 `require` 的方式引用代码。极度不推荐
+
+# Change Log #
+- 加入招商一网通支付，加入详细的demo(from v3.1.0)
+- 支付宝密钥支持字符串、文件两种方式配置，微信支持HMAC-SHA256加密（from v3.0.1）
+- 支持支付宝rsa2签名 加入支付宝当面付-条码支付(条码与声波两种模式)   微信加入刷卡支付、小程序支付、H5支付  提供客户端静态调用类 不再兼容支付宝老版本接口（from v3.0.0）
+- 支持支付宝新版本支付接口（from v2.7.0）
+- 配置文件控制权限由使用者控制（from v2.0.0）
+
+----
+
+# Payment 能够做什么 #
+
+Paymeng 主要帮助 php 开发者在服务端快速接入主流的支付平台(支付宝支付、微信支付等)。节省时间少走弯路。
+
+Payment 针对不同支付平台，提供了统一的调用方式，开发者无需再一个平台一个平台的去阅读文档、调试。所有的支付平台后台服务统一用一套代码，在支付对接模块的代码维护量大大减少，可以把更多的时间和精力花在自身产品的核心业务上
+
+## 为什么要用Payment SDK ##
+
+所有的支付官方都提供了demo，方便开发者学习使用。但是其中每一个支付 demo 都不尽相同，并且不少 官方 demo 还有不少错误，让开发者使用的时候莫名其妙。
+
+针对不同的支付，官方demo写法各异，很多还使用了老旧的 php 语法。
+
+而 **Payment SDK** 针对不同服务商的支付功能，都提供统一的调用方式，大大降低学习与使用成本。
+
+## 与其他聚合支付服务的对比 ##
+这里最主要的对比对象是ping++。当然我这个个人开发者肯定没法与之相比。首先ping++服务更多，接入的支付种类更多。开放出来的接口也更多。
+
+但是本sdk的优势也非常明显。
+- 使用项目自己部署，只需向第三方支付服务提供者付费（阿里、腾讯）。
+- 项目开源，遵循 **MIT** 许可证，大家可自由更改。
+- 根据自己需求，可以自己动手定义个性化。
+- 通过composer安装管理，方便升级。
+- 就算我以后不维护升级了，也保证你代码可用，如果用第三方聚合的支付，与第三方就有了强关联。
+
+# 联系&打赏 #
+
+如果真心觉得项目帮助到你，为你节省了成本，欢迎鼓励一下。
+
+如果有什么问题，可通过以下方式联系我。提供有偿技术服务。
+
+也希望更多朋友可用提供代码支持。欢迎交流与大赏。
+
+**邮箱**：dayugog@gmail.com
 
 
-## 订单查询
-    详细代码还是可以看 `examples/query.php` 文件哈
-    
-```php
-    // 支付宝的回调
-    $payway = ChargeChannel::CHANNEL_IS_ALIPAY;
-    
-    // 微信的回调
-    //$payway = ChargeChannel::CHANNEL_IS_WX;
-    
-    $value = '1007570439201601142692427764';// 第三方交易号
-    $key = 'trade_no';// 可取值：out_trade_no：商户网站唯一订单号   trade_no： 第三方交易号
-    
-    $api = TradeFactory::getInstance($payway);
-    
-    try {
-        $data = $api->tradeQuery($value, $key);
-    
-        /**
-         * 'subject' => '美团美食购买'// 商品标题
-         * 'body' => '购买蓉和小厨美食'// 商品描述
-         * 'amount' => '133400'// 支付的总金额，单位为分
-         * 'channel' => 'ali'// 支付通道 .此处可能值仅为： ali  wx
-         * 'order_no' => '2016060504005139'// 商户唯一订单号
-         * 'buyer_id' => '2088122159801601'// 购买者识别码。支付宝为：购买者邮箱，或者手机号码。weiixn为唯一识别码
-         * 'trade_state' => 'SUCCESS'// 交易状态。SUCCESS—支付成功     REFUND—转入退款    NOTPAY—未支付
-         * 'transaction_id' => '2016060521001004600254528027'// 第三方的流水号
-         * 'time_end' => 2016-06-05 16:01:00'// 交易完成时间
-         */
-        var_dump($data);
-    } catch (PayException $e) {
-        echo $e->errorMessage();
-    }
-```
+**个人公众号：** `icanfo`
 
-## 回调通知
-    这里说的通知，主要是说异步通知，当然同步通知处理方式一样。你唯一需要关注的是，解决好你自己的业务，不要一定订单被更新多次就糟糕了。
+![image](http://ol59nqr1i.bkt.clouddn.com/mp-qr.jpg)
 
-这里回调通知，
+感谢朋友们的支持：[支持名单](SUPPORT.md)
 
-```php
-    /**
-     * 首先该lib已经处理了相关的验证，并且可以进行自动的回调。
-     * 现在我假设你自己的业务处理类叫做：NotifyOrder
-     */
-    
-    class NotifyOrder implements PayNotifyInterface
-    {
-    
-        /**
-         * 必须要实现的方法。我会对该商户实现的方法进行回调
-         * @param array $data
-         * @return bool
-         * @author helei
-         */
-        public function notifyProcess($data)
-        {
-            // 1. 检查订单是否已经被更新过了。
-            // 2. 检查金额是否正确
-            // 3. 其他逻辑
-            // 4. 进行更新订单状态
-            return true;
-        }
-    }
-    
-    // 支付宝的回调
-    $payway = ChargeChannel::CHANNEL_IS_ALIPAY;
-    
-    // 微信的回调
-    //$payway = ChargeChannel::CHANNEL_IS_WX;
-    
-    $api = TradeFactory::getInstance($payway);
-    
-    $notify = new NotifyOrder();
-    
-    try {
-        $ret = $api->notify($notify);
-    
-        echo $ret;exit;// 执行成功时，需要输出结果
-    } catch (PayException $e) {
-        echo $e->errorMessage();
-    }
-```
- 
-# 说明
+# License #
 
-后续接口，将会一点点增加。写这个的初衷也是，自己基本每份工作都要写支付。每次都是重新开始。麻烦、累
-干脆整理一下，放出来，大家共用、共享。同时也希望有好的建议、改进方法的可以向我说明。我们一起完善维护。让工作更轻松。
+The code for Payment is distributed under the terms of the MIT license (see [LICENSE](LICENSE)).
 
-* 邮箱：dayugog@gmail.com
-* 博客：http://blog.csdn.net/hel12he
-* 微信：helei543345
 
-另外本项目，首发在github。主要原因是：github上提交composer包非常方便。但是每次更新后，会自动提交到oschina的。
+[ico-license]: https://img.shields.io/github/license/helei112g/payment.svg
+[ico-version-dev]: https://img.shields.io/packagist/vpre/riverslei/payment.svg
+[ico-downloads-monthly]: https://img.shields.io/packagist/dm/riverslei/payment.svg?style=flat-square
 
-github地址： https://github.com/helei112g/payment
-
-当然如果你愿意打赏我，我也是愿意接受的。
+[link-packagist]: https://packagist.org/packages/riverslei/payment
+[link-downloads]: https://packagist.org/packages/riverslei/payment/stats

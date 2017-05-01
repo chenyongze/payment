@@ -1,55 +1,43 @@
 <?php
 /**
+ * 第三方支付回调处理
  * @author: helei
- * @createTime: 2016-06-17 10:14
- * @description: 支付成功后的回调通知
+ * @createTime: 2016-07-25 15:57
+ * @description: 支付通知回调
  */
 
 require_once __DIR__ . '/../autoload.php';
+require_once __DIR__ . '/testNotify.php';
 
-use Payment\Contracts\PayNotifyInterface;
-use Payment\Common\ChargeChannel;
-use Payment\Factory\TradeFactory;
 use Payment\Common\PayException;
+use Payment\Client\Notify;
 
-/**
- * 首先该lib已经处理了相关的验证，并且可以进行自动的回调。
- * 现在我假设你自己的业务处理类叫做：NotifyOrder
- */
+date_default_timezone_set('Asia/Shanghai');
 
-class NotifyOrder implements PayNotifyInterface
-{
+$aliConfig = require_once __DIR__ . '/aliconfig.php';
+$wxConfig = require_once __DIR__ . '/wxconfig.php';
+$cmbConfig = require_once __DIR__ . '/cmbconfig.php';
 
-    /**
-     * 必须要实现的方法。我会对该商户实现的方法进行回调
-     * @param array $data
-     * @return bool
-     * @author helei
-     */
-    public function notifyProcess($data)
-    {
-        // 1. 检查订单是否已经被更新过了。
-        // 2. 检查金额是否正确
-        // 3. 其他逻辑
-        // 4. 进行更新订单状态
-        return true;
-    }
+$callback = new TestNotify();
+
+$type = 'cmb_charge';// xx_charge
+
+if (stripos($type, 'ali') !== false) {
+    $config = $aliConfig;
+} elseif (stripos($type, 'wx') !== false) {
+    $config = $wxConfig;
+} else {
+    $config = $cmbConfig;
 }
-
-// 支付宝的回调
-$payway = ChargeChannel::CHANNEL_IS_ALIPAY;
-
-// 微信的回调
-//$payway = ChargeChannel::CHANNEL_IS_WX;
-
-$api = TradeFactory::getInstance($payway);
-
-$notify = new NotifyOrder();
 
 try {
-    $ret = $api->notify($notify);
+    //$retData = Notify::getNotifyData($type, $config);// 获取第三方的原始数据，未进行签名检查
 
-    echo $ret;exit;// 执行成功时，需要输出结果
+    $ret = Notify::run($type, $config, $callback);// 处理回调，内部进行了签名检查
 } catch (PayException $e) {
     echo $e->errorMessage();
+    exit;
 }
+
+var_dump($ret);
+exit;

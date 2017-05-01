@@ -1,6 +1,9 @@
 .idea
-.aiyuke
-apiclient_cert.pem
-apiclient_key.pem
-rsa_public_key.pem
-rsa_private_key.pem
+.DS_Store
+/codecept.phar
+/examples/test.php
+/examples/wx/pem
+/vendor/
+/examples_bak/
+/composer.lock
+/examples/wxconfig-bak.php
